@@ -247,6 +247,11 @@ public class FileUtil {
 	/**
 	 * 
 	 * Func:加密方式 针对文件内容前num个字节取反，在文件头随机加key个字节，
+	 *    加密的工具，要考虑实现的功能情况:
+	 *	 1、文件只有没加密的情况下才能进行加密。
+	 *   2、文件之后再加密的情况下才能进行解密。
+	 *   3、必须能够判断密钥是否正确，因为如果用一个假的密钥进行解密的话会将原本的数据毁掉。
+	 *	 4、递归加密的时候必须能够忽略掉那些已经加密的文件，解密的时候忽略掉那些没有加密的文件。
 	 * Data:2020-03-15 Time:下午5:29:01
 	 * @param s_File
 	 * @param key
@@ -256,8 +261,14 @@ public class FileUtil {
 		
 		File inFile = new File(s_File);
 		FileInputStream input = new FileInputStream(inFile);
-		byte[] b = new byte[num];
-		
+		byte[] b = null;;
+		if(inFile != null) {
+			if( num > inFile.length()) {
+				b = new byte[(int)inFile.length()];
+			}else {
+				b = new byte[num];
+			}
+		}
 		int in = input.read(b);
 		input.close();
 		
@@ -265,7 +276,7 @@ public class FileUtil {
 		RandomAccessFile output = new RandomAccessFile(s_File, "rw");
 		for(int i=0;i < b.length;i++){
             int temp = b[i];
-            b[i] = (byte) (~temp);
+            b[i] = (byte) (temp^key);
         }
 		output.write(b);
 		output.close();
@@ -408,7 +419,7 @@ public class FileUtil {
 			case 1:
 				for(File a:files){
 					if(a.isDirectory()){
-						getAllFileName(a.getAbsolutePath()+"\\",listFileName,1);
+						getAllFileName(a.getAbsolutePath()+"/",listFileName,1);
 					}else if(a.isFile()) {
 						listFileName.add(a.getName());
 					}
@@ -418,7 +429,7 @@ public class FileUtil {
 				for(File a:files){
 					if(a.isDirectory()){//如果文件夹下有子文件夹，获取子文件夹下的所有文件全路径。
 							listFileName.add(a.getName());
-						getAllFileName(a.getAbsolutePath()+"\\",listFileName,2);
+						getAllFileName(a.getAbsolutePath()+"/",listFileName,2);
 					}
 				}
 				break;
@@ -433,7 +444,7 @@ public class FileUtil {
 					for(File a:files){
 						listFileName.add(a.getName());
 						if(a.isDirectory()){
-							getAllFileName(a.getAbsolutePath()+"\\",listFileName,3);
+							getAllFileName(a.getAbsolutePath()+"/",listFileName,3);
 						}
 					}
 				break;
@@ -470,9 +481,9 @@ public class FileUtil {
 	    public static  void bigFileAddHead(String filename){
 	        // 将282兆的文件内容头部添加一行字符  "This is a head!"
 	        String strHead = "1234567890" ; // 添加的头部内容
-	        String srcFilePath = "D:\\BaiduNetdiskDownload\\test\\4.html的文档设置标记上（格式标记）.mp4" ; // 原文件路径
-//	        String srcFilePath = "D:\\BaiduNetdiskDownload\\test\\134.txt" ; // 原文件路径
-	        String destFilePath = "D:\\BaiduNetdiskDownload\\test\\134-1.txt" ; // 添加头部后文件路径 （最终添加头部生成的文件路径）
+	        String srcFilePath = "D:/BaiduNetdiskDownload/test/4.html的文档设置标记上（格式标记）.mp4" ; // 原文件路径
+//	        String srcFilePath = "D:/BaiduNetdiskDownload/test/134.txt" ; // 原文件路径
+	        String destFilePath = "D:/BaiduNetdiskDownload/test/134-1.txt" ; // 添加头部后文件路径 （最终添加头部生成的文件路径）
 	        long startTime = System.currentTimeMillis();
 	        try {
 	            // 映射原文件到内存
@@ -597,10 +608,8 @@ public class FileUtil {
 	     
 	    	/**
 	    	 * 根据文件路径获取文件头信息
-	    	 * 
-	    	 * @param filePath
-	    	 *            文件路径
-	    	 * @return 文件头信息
+	    	 * @param filePath  文件路径
+	    	 * @return 文件头
 	    	 */
 	    	public static String getFileHeader(String filePath) {
 	    		FileInputStream is = null;
@@ -653,11 +662,11 @@ public class FileUtil {
 	    	}
 	     
 	public static void main(String[] args) throws Exception {
-//		bigFileAddHead("");
 		
-		final String fileType = getFileType("D:\\BaiduNetdiskDownload\\test\\1");
-		System.out.println(fileType);
-//		encryption("C:/Users/jcy/Desktop/1.txt", 1, 500);
-//		encryption("D:\\BaiduNetdiskDownload\\test\\04 「远离金融陷阱」文化艺术品、古董等.avi", 1, 50000);
+//		final String fileType = getFileType("C:/Users/wyy/Desktop/ComicClient/1.txt");
+//		System.out.println(fileType);
+
+  		encryption("C:/Users/wyy/Desktop/ComicClient/1.txt", 98, 22);
+//		encryption("D:/BaiduNetdiskDownload/test/04 「远离金融陷阱」文化艺术品、古董等.avi", 1, 50000);
 	}
 }
