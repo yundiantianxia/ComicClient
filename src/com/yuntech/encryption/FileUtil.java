@@ -1,12 +1,21 @@
 package com.yuntech.encryption;
 import java.io.File;
+import java.io.FileDescriptor;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.IOException;
+import java.io.LineNumberReader;
 import java.io.RandomAccessFile;
+
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.nio.IntBuffer;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -14,8 +23,16 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Random;
 
+
 import javax.swing.JFileChooser;
 import javax.swing.filechooser.FileSystemView;
+
+
+
+
+
+
+
 
 public class FileUtil {
 
@@ -59,7 +76,7 @@ public class FileUtil {
         		}
     			
         	}else if(lfs.isFile()){
-        		decryption(lfs.getPath(), 1);
+//        		decryption(lfs.getPath(), 1);
         		System.out.println(lfs.getPath()+" haved be UnArchived");
         	}else {
         		System.out.println("File will Be locked ");
@@ -254,14 +271,14 @@ public class FileUtil {
 	 *	 4、递归加密的时候必须能够忽略掉那些已经加密的文件，解密的时候忽略掉那些没有加密的文件。
 	 * Data:2020-03-15 Time:下午5:29:01
 	 * @param s_File
-	 * @param key
+	 * @param key 小于  ~128  127
 	 * @throws IOException
 	 */
 	public static void encryption(String s_File,int key,int num) throws IOException {
 		
 		File inFile = new File(s_File);
 		FileInputStream input = new FileInputStream(inFile);
-		byte[] b = null;;
+		byte[] b = null;
 		if(inFile != null) {
 			if( num > inFile.length()) {
 				b = new byte[(int)inFile.length()];
@@ -280,6 +297,19 @@ public class FileUtil {
         }
 		output.write(b);
 		output.close();
+		
+		//追加头文件信息
+		String d_File = s_File.substring(0, s_File.length())+"-cry";
+    	String strHead = "yundian,.tianxia" + "$&"+ s_File + "$&" + key + "$&" + num +"$&" ; // 添加的头部内容
+    	littleFileAddHead(s_File, 0, strHead);
+    	reFileName(s_File,d_File);
+//		if(inFile.exists()) {
+//			if(inFile.delete()) {
+//				System.out.println("del file suc");
+//			}else{
+//				System.out.println("del file fail");
+//			};
+//		}
 	}
 	
 //	public static void Archive(File inFile,int key) throws IOException {
@@ -297,23 +327,96 @@ public class FileUtil {
 	 * 
 	 * Func: 解密程序
 	 * Data:2020-03-15 Time:下午5:47:59
-	 * @param s_File
-	 * @param key
+	 * @param s_File 解析源文件的头
+	 * @throws Exception 
 	 * @throws IOException
 	 */
-	public static void decryption(String s_File,int key) throws IOException {
-		
-		File inFile = new File(s_File);
-		FileInputStream input = new FileInputStream(inFile);
-		int content= input.read();
-		input.close();
-		
-		inFile = new File(s_File);
-		RandomAccessFile output = new RandomAccessFile(s_File, "rw");
-		output.write(content^key);
-		output.close();
+//	public static void decryption(String s_File,int key) throws IOException {
+//		
+//		File inFile = new File(s_File);
+//		FileInputStream input = new FileInputStream(inFile);
+//		int content= input.read();
+//		input.close();
+//		
+//		inFile = new File(s_File);
+//		RandomAccessFile output = new RandomAccessFile(s_File, "rw");
+//		output.write(content^key);
+//		output.close();
+//	}
+	/**
+	 * Func:分析文件头1024个字节取出要素
+	 * @param s_File
+	 * @throws Exception 
+	 */
+	public static void splitFile(String s_File,String split,ArrayList<String> spitstr) throws Exception {
+		FileReader fr= new FileReader(s_File);
+		int num=0;
+		char[] buf = new char[1024];
+		//依次读取一个字符，读到最后没有了就返回-1。有分隔符号
+//		ArrayList<String> stringlist = new ArrayList<String>();//储存待读取的字符串
+//		while((num=fr.read(buf))!=-1) {
+//			System.out.println(new String(buf,0,num));;
+//		}
+		num = fr.read(buf);
+		//对字符串进一步处理
+		String[] sptstr = String.valueOf(buf).split(split);
+		for(String str:sptstr) {
+			spitstr.add(str);
+			System.out.println("str: "+str);
+		}
+		fr.close();
 	}
 	
+	/**
+	 * Func: 解析文件头，判断是否需要解压，如果不需要直接返回return
+	 * @param s_File
+	 * @throws Exception
+	 */
+	public static void decryption(String s_File) throws Exception {
+
+		File inFile= new File(s_File);
+		String ens = null;
+		String filename = null;
+		String key = null;
+		String num = null;
+		ArrayList<String> list = new ArrayList<String> ();
+		splitFile(s_File,"\\$&", list);
+		if(list.size()>=4) {
+			ens = list.get(0);
+			filename = list.get(1);
+			key = list.get(2);
+			num = list.get(3);
+		}else {
+			System.out.println("无需解压");
+			return;
+		}
+		
+		littleFileRemoveHead(s_File, s_File+"1",list);
+		reFileName(s_File+"1",filename);
+		inFile.deleteOnExit();
+		
+		
+		RandomAccessFile output = new RandomAccessFile(filename, "rw");
+		inFile = new File(filename);
+		FileInputStream input = new FileInputStream(inFile);
+		byte[] b = null;
+		if(inFile != null) {
+			if( Integer.valueOf(num) > inFile.length()) {
+				b = new byte[(int)inFile.length()];
+			}else {
+				b = new byte[Integer.valueOf(num)];
+			}
+		}
+		int in = input.read(b);
+		input.close();
+		for(int i=0;i < b.length;i++){
+            int temp = b[i];
+            b[i] = (byte) (temp^Integer.valueOf(key));
+        }
+		output.write(b);
+		output.close();
+		
+	}
 //	public static void UnArchive(File inFile,int key) throws IOException {
 //		
 //		FileInputStream input = new FileInputStream(inFile);
@@ -327,7 +430,7 @@ public class FileUtil {
 //	}
 	
     /**
-     * Func: 通过文件夹选择器修改文件夹路径直接修改文件名
+     * Func: 修改文件夹路径直接修改文件名
      * Data:2020-03-03 Time:下午8:26:33
 	 * @param srcFolderPath 需要修改的文件夹的完整路径
 	 * @param desFolderName 需要修改的文件夹的名称
@@ -370,7 +473,49 @@ public class FileUtil {
         }
         return false;
     }
-    
+    /**
+     * Func:
+     * @param srcFilePath
+     * @param desFileName
+     * @return
+     */
+    public static Boolean reFileName(String srcFilePath, String desFileName) {
+        File f = new File(srcFilePath);
+        
+        // 判断原文件是否存在（防止文件名冲突）
+        if (!f.exists()) { 
+            return false;
+        }
+        
+        //目标文件名不为空
+        if(desFileName != null ) {
+        	desFileName = desFileName.trim();
+        }else if("".equals(desFileName)) {
+        	return false;
+        }
+        
+        // 判断是否为文件夹
+        String newFilePath = null;
+        if (f.isFile()) { 
+            newFilePath =  desFileName;
+        } else {
+        	throw new RuntimeException(srcFilePath +"---Is Not A Filename");
+        }
+        File nf = new File(newFilePath);
+        try {
+        	// 修改文件名
+            if(f.renameTo(nf)) {
+            	System.out.println("Renamed Suced---"+nf.getName());
+            	return true;
+            }else{
+            	System.out.println("Renamed Failed---"+nf.getName());
+            }
+        } catch (Exception err) {
+            err.printStackTrace();
+            return false;
+        }
+        return false;
+    }
     /**
      * 
      * Func: 文件夹选择器,默认桌面路径
@@ -401,7 +546,6 @@ public class FileUtil {
         
         return null;
     }
-    
     
     /**
      * 
@@ -457,7 +601,7 @@ public class FileUtil {
 	
 	public static void closeWinFolder() {
 		
-		String path = folderChooser();
+		final String path = folderChooser();
 		
 		new Thread(){
 			public void run(){
@@ -472,18 +616,144 @@ public class FileUtil {
 			}	
 		}.start();
 	}
-	
-/**
- * 
- * Func:往文件头里写入特定字节数的内容
- * Data:2020-03-16 Time:下午8:07:28
- */
-	    public static  void bigFileAddHead(String filename){
+		
+			/**
+			 * Func: 去除文件头
+			 * @param filename
+			 * @param list
+			 */
+		    public static  void bigFileRemoveHead(String filename, ArrayList<String> list){
+
+		    	String strHead = list.get(0)+"$&"+list.get(1) + "$&" + list.get(2) + "$&" + list.get(3) + "$&"; // 添加的头部内容
+		        String srcFilePath = filename;
+		        String destFilePath = list.get(1)+"-1";
+		        long startTime = System.currentTimeMillis();
+		        try {
+		            // 映射原文件到内存
+		            RandomAccessFile srcRandomAccessFile = new RandomAccessFile(srcFilePath, "rw");
+		            FileChannel srcAccessFileChannel = srcRandomAccessFile.getChannel();
+		            long srcLength = srcAccessFileChannel.size()-strHead.length();
+		            System.out.println("src file size:" + srcLength);  // src file size:296354010
+		            MappedByteBuffer  srcMap = null;
+		            /** 判断是否大于2G **/
+		            if(srcLength > (1L << 31)) {
+		            	long cur = 0L;
+		            	long length = 1L << 29;
+		            	Random srcrandom = new Random();
+		            	try {
+		            		cur = strHead.length();
+		            		while(cur < (1L << 31) ) {
+		            			srcMap = srcAccessFileChannel.map(FileChannel.MapMode.READ_WRITE, cur, length);
+		                        IntBuffer intBuffer = srcMap.asIntBuffer();
+		                        while ( intBuffer.position() < intBuffer.capacity() ){
+		                        	intBuffer.put( srcrandom.nextInt() );
+		                        }
+		                        cur += length;
+		            		}
+		            		
+		            	}catch(IOException e) {
+		            		e.printStackTrace();
+		            	}
+		            /** 小于2G的文件,直接读入内存 **/
+		            }else {
+		            	srcMap = srcAccessFileChannel.map(FileChannel.MapMode.READ_WRITE,strHead.length() , srcLength);
+		            }
+		 
+		           // 映射目标文件到内存
+		            RandomAccessFile destRandomAccessFile = new RandomAccessFile(destFilePath, "rw");
+		            FileChannel destAccessFileChannel = destRandomAccessFile.getChannel();
+		            long destLength = srcLength;
+		            System.out.println("dest file size:"+ destLength);  // dest file size:296354025
+		            MappedByteBuffer destMap = null;
+		            /** 判断是否大于2G **/
+		            if(destLength > (1L << 31)) {
+		            	long cur = 0L;
+		            	long length = 1L << 29;
+		            	Random desrandom = new Random();
+		            	try {
+		            		while(cur < (1L << 31) ) {
+		            			destMap = destAccessFileChannel.map(FileChannel.MapMode.READ_WRITE, cur, length);
+		                        IntBuffer intBuffer = destMap.asIntBuffer();
+		                        while ( intBuffer.position() < intBuffer.capacity() ){
+		                        	intBuffer.put( desrandom.nextInt() );
+		                        }
+		                        cur += length;
+		            		}
+		            	}catch(IOException e) {
+		            		e.printStackTrace();
+		            	}
+		            /** 小于2G的文件,直接读入内存 **/
+		            }else {
+		            	destMap = destAccessFileChannel.map(FileChannel.MapMode.READ_WRITE, 0, destLength);
+		            }
+		 
+		            // 开始文件追加 : 减去头部内容，再添加原来文件内容
+		            destMap.position(0);
+		            destMap.put(srcMap);
+		            destAccessFileChannel.close();
+		            srcRandomAccessFile.close();
+		            destRandomAccessFile.close();
+		            System.out.println("dest real file size:"+new RandomAccessFile(destFilePath,"r").getChannel().size());
+		            System.out.println("total time :" + (System.currentTimeMillis() - startTime));// 貌似时间不准确，异步操作？
+		        } catch (FileNotFoundException e) {
+		            e.printStackTrace();
+		        } catch (IOException e) {
+		            e.printStackTrace();
+		        }
+		    }	
+		    /**
+		     * Func: 小文件移除头文件块
+		     * @param filename
+		     * @param list
+		     */
+		    public static  void littleFileRemoveHead(String filename, String desfile, ArrayList<String> list) throws IOException{
+
+		    		String strHead = list.get(0)+"$&"+list.get(1) + "$&" + list.get(2) + "$&" + list.get(3) + "$&"; // 添加的头部内容
+		    		int pos = 0;
+//		            File tmp=File.createTempFile("tmp", null);
+		    		File tmp = new File(desfile);
+//					tmp.deleteOnExit();
+					//使用临时文件保存插入点后的数据
+					RandomAccessFile raf=new RandomAccessFile(filename, "rw");
+					FileOutputStream out=new FileOutputStream(tmp);
+					FileInputStream in=new FileInputStream(tmp);
+					raf.seek(strHead.getBytes().length);
+					//----------下面代码将插入点后的内容读入临时文件中保存----------
+					byte[] bbuf=new byte[4096*10];
+					//用于保存实际读取的字节数
+					int hasRead = 0;
+					//使用循环方式读取插入点后的数据
+					while((hasRead=raf.read(bbuf))>0){
+						//将读取的数据写入临时文件
+						out.write(bbuf,0,hasRead);
+					}
+					//-----------下面代码用于插入内容----------
+					//把文件记录指针重写定位到pos位置
+					raf.seek(pos);
+
+				    //追加临时文件中的内容
+					while((hasRead=in.read(bbuf))>0){
+						raf.write(bbuf,0, hasRead);
+					}
+					raf.close();
+					out.close();
+					in.close();
+					
+		    }	
+		/**
+		 * 
+		 * Func:往文件头里写入特定字节数的内容
+		 * Data:2020-03-16 Time:下午8:07:28
+		 * key : ~128 127
+		 * num : 加密字节数
+		 */
+	    public static  void bigFileAddHead(String srcFile,String desFile,String strHead){
 	        // 将282兆的文件内容头部添加一行字符  "This is a head!"
-	        String strHead = "1234567890" ; // 添加的头部内容
-	        String srcFilePath = "D:/BaiduNetdiskDownload/test/4.html的文档设置标记上（格式标记）.mp4" ; // 原文件路径
-//	        String srcFilePath = "D:/BaiduNetdiskDownload/test/134.txt" ; // 原文件路径
-	        String destFilePath = "D:/BaiduNetdiskDownload/test/134-1.txt" ; // 添加头部后文件路径 （最终添加头部生成的文件路径）
+	     
+//	        String srcFilePath = "D:/BaiduNetdiskDownload/test/4.html的文档设置标记上（格式标记）.mp4" ; // 原文件路径
+//	        String srcFilePath = "D:/BaiduNetdiskDownload/test/1.txt" ; // 原文件路径
+	        String srcFilePath = srcFile;
+	        String destFilePath = desFile; // 添加头部后文件路径 （最终添加头部生成的文件路径）
 	        long startTime = System.currentTimeMillis();
 	        try {
 	            // 映射原文件到内存
@@ -547,8 +817,17 @@ public class FileUtil {
 	            destMap.position(0);
 	            destMap.put(strHead.getBytes());
 	            destMap.put(srcMap);
+
+	            // 加上这几行代码,手动unmap 
+	    
+	            
+	            srcMap.clear();
+	            destMap.clear();
 	            destAccessFileChannel.close();
+	            srcAccessFileChannel.close();
 	            srcRandomAccessFile.close();
+	            destRandomAccessFile.close();
+	            
 	            System.out.println("dest real file size:"+new RandomAccessFile(destFilePath,"r").getChannel().size());
 	            System.out.println("total time :" + (System.currentTimeMillis() - startTime));// 貌似时间不准确，异步操作？
 	        } catch (FileNotFoundException e) {
@@ -558,6 +837,45 @@ public class FileUtil {
 	        }
 	    }
 
+		
+		/**
+		 * Func:  小文件(小于1G)  插入文件头
+		 * @param fileName
+		 * @param pos
+		 * @param insertContent
+		 * @throws IOException
+		 */
+		public static void littleFileAddHead(String fileName,long pos,String insertContent) throws IOException{
+			File tmp=File.createTempFile("tmp", null);
+			tmp.deleteOnExit();
+			//使用临时文件保存插入点后的数据
+			RandomAccessFile raf=new RandomAccessFile(fileName, "rw");
+			FileOutputStream out=new FileOutputStream(tmp);
+			FileInputStream in=new FileInputStream(tmp);
+			raf.seek(pos);
+			//----------下面代码将插入点后的内容读入临时文件中保存----------
+			byte[] bbuf=new byte[4096*10];
+			//用于保存实际读取的字节数
+			int hasRead =0;
+			//使用循环方式读取插入点后的数据
+			while((hasRead=raf.read(bbuf))>0){
+				//将读取的数据写入临时文件
+				out.write(bbuf,0,hasRead);
+			}
+			//-----------下面代码用于插入内容----------
+			//把文件记录指针重写定位到pos位置
+			raf.seek(pos);
+			//追加需要插入的内容
+			raf.write(insertContent.getBytes());
+		    //追加临时文件中的内容
+			while((hasRead=in.read(bbuf))>0){
+				raf.write(bbuf,0, hasRead);
+			}
+			raf.close();
+			out.close();
+			in.close();
+		}
+			
 	    	// 缓存文件头信息-文件头信息
 	    	public static final HashMap<String, String> mFileTypes = new HashMap<String, String>();
 	    	static {
@@ -592,7 +910,28 @@ public class FileUtil {
 	    		mFileTypes.put("4D5A9000", "exe/dll");
 	    		mFileTypes.put("75736167", "txt");
 	    	}
-	     
+	    	/**
+	    	 * 
+	    	 * @param buffer
+	    	 * @param channelClass
+	    	 */
+	        public static void unMapBuffer(MappedByteBuffer buffer, Class channelClass) {
+	            if (buffer == null) {
+	                return;
+	            }
+	         
+	            try {
+	                Method unmap = channelClass.getDeclaredMethod("unmap", MappedByteBuffer.class);
+	                unmap.setAccessible(true);
+	                unmap.invoke(channelClass, buffer);
+	            } catch (NoSuchMethodException e) {
+	                e.printStackTrace();
+	            } catch (IllegalAccessException e) {
+	                e.printStackTrace();
+	            } catch (InvocationTargetException e) {
+	                e.printStackTrace();
+	            }
+	        }
 	    	/**
 	    	 * 根据文件路径获取文件头信息
 	    	 * 
@@ -665,8 +1004,16 @@ public class FileUtil {
 		
 //		final String fileType = getFileType("C:/Users/wyy/Desktop/ComicClient/1.txt");
 //		System.out.println(fileType);
+//
+  		encryption("C:/Users/wyy/Desktop/ComicClient/完成版.mp4", 98, 200);
+//  		decryption("C:/Users/wyy/Desktop/ComicClient/完成版.mp4-cry");
 
-  		encryption("C:/Users/wyy/Desktop/ComicClient/1.txt", 98, 22);
+//  		encryption("C:/Users/wyy/Desktop/ComicClient/1.txt", 98, 5);
+//  		decryption("C:/Users/wyy/Desktop/ComicClient/1.txt-cry");
+		
+//		insert("C:/Users/wyy/Desktop/ComicClient/CentOS-7-x86_64-DVD-1611.iso", 0, "abcdefghi");
+//  		readAppointedLineNumber(new File("C:/Users/wyy/Desktop/ComicClient/1.txt"),1);
+//  		decryption("C:/Users/wyy/Desktop/ComicClient/完成版.mp4-cry");
 //		encryption("D:/BaiduNetdiskDownload/test/04 「远离金融陷阱」文化艺术品、古董等.avi", 1, 50000);
 	}
 }
