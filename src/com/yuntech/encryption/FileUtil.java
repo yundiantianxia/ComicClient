@@ -1,4 +1,5 @@
 package com.yuntech.encryption;
+import java.awt.Desktop;
 import java.io.File;
 import java.io.FileDescriptor;
 import java.io.FileInputStream;
@@ -40,9 +41,9 @@ public class FileUtil {
 	
 	/**
 	 * 解包方法：解包指定文件到指定文件夹下
-	 * @throws IOException 
+	 * @throws Exception 
 	 */
-	public static boolean unPackege() throws IOException {
+	public static boolean unPackege() throws Exception {
 		String[] mode= new String[2];
 		mode[0]=".{645FF040-5081-101B-9F08-00AA002F954E}";
 		mode[1]=".{2559a1f2-21d7-11d4-bdaf-00c04f60b9f0}";
@@ -76,7 +77,7 @@ public class FileUtil {
         		}
     			
         	}else if(lfs.isFile()){
-//        		decryption(lfs.getPath(), 1);
+        		decryption(lfs.getPath());
         		System.out.println(lfs.getPath()+" haved be UnArchived");
         	}else {
         		System.out.println("File will Be locked ");
@@ -123,7 +124,7 @@ public class FileUtil {
 	        		Runtime.getRuntime().exec("attrib "+ lfs.getPath()+mode[1] + " +S +H " );
 	    			System.out.println(lfs.getPath() + "---Haved Be S H  Suced To---" + lfs.getPath()+mode[1]);
 	        	}else if(lfs.isFile()){
-	        		encryption(lfs.getPath(), 1, 1);
+	        		encryption(lfs.getPath());
 	        		System.out.println(lfs.getPath()+"---haved be Archived");
 	        	}else {
 	        		System.out.println("Packeged Failed");
@@ -196,6 +197,13 @@ public class FileUtil {
 			   "L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z"}; 
 	 private static Random random = new Random();
 	 
+	/**
+	 * 
+	 * Func: 获取随机数文件名
+	 * Data: 2020-03-22
+	 * @param num
+	 * @return
+	 */
 	 public static String getRandom(int num){
 		  ArrayList<String> arstr = new ArrayList<String>();
 		  StringBuffer code = new StringBuffer();
@@ -263,7 +271,7 @@ public class FileUtil {
 
 	/**
 	 * 
-	 * Func:加密方式 针对文件内容前num个字节取反，在文件头随机加key个字节，
+	 * Func:加密方式 针对文件内容 随机key 随机个字节取反，在文件首追加文件头信息个字节，
 	 *    加密的工具，要考虑实现的功能情况:
 	 *	 1、文件只有没加密的情况下才能进行加密。
 	 *   2、文件之后再加密的情况下才能进行解密。
@@ -274,10 +282,14 @@ public class FileUtil {
 	 * @param key 小于  ~128  127
 	 * @throws IOException
 	 */
-	public static void encryption(String s_File,int key,int num) throws IOException {
+	public static void encryption(String s_File) throws IOException {
 		
 		File inFile = new File(s_File);
 		FileInputStream input = new FileInputStream(inFile);
+		Random r = new Random();
+		int key = r.nextInt(1000);
+		int num = r.nextInt(1000);
+		
 		byte[] b = null;
 		if(inFile != null) {
 			if( num > inFile.length()) {
@@ -299,7 +311,7 @@ public class FileUtil {
 		output.close();
 		
 		//追加头文件信息
-		String d_File = s_File.substring(0, s_File.length())+"-cry";
+		String d_File = inFile.getParent()+"/"+getRandom(8);
     	String strHead = "yundian,.tianxia" + "$&"+ s_File + "$&" + key + "$&" + num +"$&" ; // 添加的头部内容
     	littleFileAddHead(s_File, 0, strHead);
     	reFileName(s_File,d_File);
@@ -549,7 +561,7 @@ public class FileUtil {
     
     /**
      * 
-     * Func:遍历所有的文件或文件夹  0文件  1文件夹  2文件以及文件夹
+     * Func:遍历所有的文件或文件夹  1文件  2文件夹  3文件以及文件夹
      * Data:2020-03-14 Time:上午10:48:08
      * @param path
      * @param listFileName
@@ -572,7 +584,7 @@ public class FileUtil {
 			case 2:
 				for(File a:files){
 					if(a.isDirectory()){//如果文件夹下有子文件夹，获取子文件夹下的所有文件全路径。
-							listFileName.add(a.getName());
+						listFileName.add(a.getName());
 						getAllFileName(a.getAbsolutePath()+"/",listFileName,2);
 					}
 				}
@@ -598,7 +610,11 @@ public class FileUtil {
 		
 
 	}
-	
+	/**
+	 * 
+	 * Func: 关闭文件窗口方式 循环遍历
+	 * Data: 2020-03-22
+	 */
 	public static void closeWinFolder() {
 		
 		final String path = folderChooser();
@@ -609,6 +625,7 @@ public class FileUtil {
 					ArrayList<String> listFileName = new ArrayList<String>();
 					getAllFileName(path, listFileName, 2);
 					CloseWinFolder closeWinFolder = new CloseWinFolder();
+					listFileName.add(path);
 					for(String foldername: listFileName) {
 						System.out.println(foldername+":"+closeWinFolder.runbatt(foldername));
 					}
@@ -999,14 +1016,30 @@ public class FileUtil {
 //	    		System.out.println(builder.toString());
 	    		return builder.toString();
 	    	}
-	     
+//	    	
+//	    	/**
+//	    	 * 
+//	    	 * Func:
+//	    	 * Data: 2020-03-22
+//	    	 * @throws Exception
+//	    	 */
+//	    	    public static  void hello() throws Exception  {
+//	    	        Desktop desktop = Desktop.getDesktop();
+//	    	        File dirToOpen = null;
+//	    	        try {
+//	    	            dirToOpen = new File("C:/Users/wyy/Desktop/ComicClient");
+//	    	            desktop.(dirToOpen);
+//	    	        } catch (IllegalArgumentException iae) {
+//	    	            System.out.println("File Not Found");
+//	    	        }
+//	    	    }
 	public static void main(String[] args) throws Exception {
 		
 //		final String fileType = getFileType("C:/Users/wyy/Desktop/ComicClient/1.txt");
 //		System.out.println(fileType);
-//
-  		encryption("C:/Users/wyy/Desktop/ComicClient/完成版.mp4", 98, 200);
-//  		decryption("C:/Users/wyy/Desktop/ComicClient/完成版.mp4-cry");
+//		
+//  		encryption("C:/Users/wyy/Desktop/ComicClient/test/6.建行云缴费-亿生活(190213)-王璐.pptx");
+//  		decryption("C:/Users/wyy/Desktop/ComicClient/test/"+"JGYJMDTL");
 
 //  		encryption("C:/Users/wyy/Desktop/ComicClient/1.txt", 98, 5);
 //  		decryption("C:/Users/wyy/Desktop/ComicClient/1.txt-cry");
@@ -1015,5 +1048,9 @@ public class FileUtil {
 //  		readAppointedLineNumber(new File("C:/Users/wyy/Desktop/ComicClient/1.txt"),1);
 //  		decryption("C:/Users/wyy/Desktop/ComicClient/完成版.mp4-cry");
 //		encryption("D:/BaiduNetdiskDownload/test/04 「远离金融陷阱」文化艺术品、古董等.avi", 1, 50000);
+//		packege();
+//		unPackege();
+//		closeWinFolder();
+//		hello();
 	}
 }
