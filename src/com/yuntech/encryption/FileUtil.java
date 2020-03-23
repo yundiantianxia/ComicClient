@@ -23,7 +23,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Random;
-
+import java.util.concurrent.TimeUnit;
 
 import javax.swing.JFileChooser;
 import javax.swing.filechooser.FileSystemView;
@@ -610,9 +610,34 @@ public class FileUtil {
 			default:
 				
 		}
-		
-
 	}
+	
+	/**
+	 * 
+	 * Func: 选择文件夹路径，根据遍历深度，返回所有的文件夹名称(不含路径信息) 含当前文件夹 
+	 * Data: 2020-03-23
+	 * @param path
+	 * @param listFileName
+	 * @param bread
+	 */
+	public  static void getFolderName(String folderpath,ArrayList<String> listFolderName, int bread){
+		File file = new File(folderpath);
+		File [] files = file.listFiles();
+		if(bread == 0) {
+			return ;
+		}
+		if(file.isDirectory()) {
+			bread--;
+			listFolderName.add(file.getName());
+			for(File a:files){
+				if(a.isDirectory()){//如果文件夹下有子文件夹，获取子文件夹下的所有文件全路径。
+					listFolderName.add(a.getName());
+					getAllFileName(a.getAbsolutePath()+"/",listFolderName, bread);
+				}
+			}
+		}
+	}
+	
 	/**
 	 * 
 	 * Func: 关闭文件窗口方式 循环遍历
@@ -626,11 +651,19 @@ public class FileUtil {
 			public void run(){
 				while(true) {
 					ArrayList<String> listFileName = new ArrayList<String>();
-					getAllFileName(path, listFileName, 2);
-					CloseWinFolder closeWinFolder = new CloseWinFolder();
+					//往下遍历一层
+					getFolderName(path, listFileName, 1);
+//					CloseWinFolder closeWinFolder = new CloseWinFolder();
 					listFileName.add(path);
 					for(String foldername: listFileName) {
-						System.out.println(foldername+":"+closeWinFolder.runbatt(foldername));
+						System.out.println("foldername:"+foldername);
+						CloseWinFolder.closewindow(foldername);
+						try {
+							TimeUnit.MILLISECONDS.sleep(1);
+						} catch (InterruptedException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
 					}
 				}
 			}	
@@ -1053,9 +1086,8 @@ public class FileUtil {
 //		encryption("D:/BaiduNetdiskDownload/test/04 「远离金融陷阱」文化艺术品、古董等.avi", 1, 50000);
 //		packege();
 //		unPackege();
-//		closeWinFolder();
+		closeWinFolder();
 //		hello();
-		User32 INSTANCE = (User32) Native.loadLibrary("user32", User32.class);
-		com.sun.jna.platform.win32.User32.INSTANCE.FindWindow("CabinetWClass", "QQ"); 
+	
 	}
 }

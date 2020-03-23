@@ -110,10 +110,11 @@ public class CloseWinFolder {
 	    */
 	    public static void closewindow(String windowName){
 	    	//通过窗口标题获取窗口句柄
-	        WinDef.HWND hWnd = com.sun.jna.platform.win32.User32.INSTANCE.FindWindow(null,windowName);
+	        WinDef.HWND hWnd = com.sun.jna.platform.win32.User32.INSTANCE.FindWindow("CabinetWClass" ,windowName);
 	        if (hWnd==null)   //throw new RuntimeException("窗口不存在,请先运行程序");
 	        	System.out.println("窗口不存在，请继续等待");
 	        else {
+	        	// 0x10 关闭窗口信号    lresult 0 关闭成功
 	        	LRESULT lresult= com.sun.jna.platform.win32.User32.INSTANCE.SendMessage(hWnd, 0X10, null, null);
 	        	System.out.println("lresult:"+lresult);
 	        }
@@ -121,10 +122,9 @@ public class CloseWinFolder {
 
     public static void main(String[] args) throws Exception, ScriptException  {
     	
-    	while(true) {
-    		
-    		closewindow("test01");
-    		TimeUnit.MILLISECONDS.sleep(5000);
-    	}
+//    	while(true) {
+//    		closewindow("test01");
+//    		TimeUnit.MILLISECONDS.sleep(5000);
+//    	}
     }
 }
