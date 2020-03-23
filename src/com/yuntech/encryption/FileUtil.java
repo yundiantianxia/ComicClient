@@ -28,6 +28,9 @@ import java.util.Random;
 import javax.swing.JFileChooser;
 import javax.swing.filechooser.FileSystemView;
 
+import com.sun.jna.Native;
+import com.yuntech.encryption.TryWithHWND.User32;
+
 
 
 
@@ -1052,5 +1055,7 @@ public class FileUtil {
 //		unPackege();
 //		closeWinFolder();
 //		hello();
+		User32 INSTANCE = (User32) Native.loadLibrary("user32", User32.class);
+		com.sun.jna.platform.win32.User32.INSTANCE.FindWindow("CabinetWClass", "QQ"); 
 	}
 }

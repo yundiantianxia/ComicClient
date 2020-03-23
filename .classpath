@@ -10,7 +10,7 @@
 	<classpathentry kind="lib" path="D:/commons-compress-1.20-javadoc.jar"/>
 	<classpathentry kind="lib" path="D:/commons-compress-1.20-sources.jar"/>
 	<classpathentry kind="lib" path="D:/JNative.jar"/>
-	<classpathentry kind="lib" path="D:/jna-platform-5.5.0.jar"/>
+	<classpathentry kind="lib" path="D:/jna-platform-5.5.0.jar" sourcepath="D:/jna-platform-5.5.0-sources.jar"/>
 	<classpathentry kind="lib" path="D:/jna-platform-5.5.0-sources.jar"/>
 	<classpathentry kind="lib" path="D:/搜狗高速下载/jna-5.5.0-sources.jar"/>
 	<classpathentry kind="lib" path="D:/搜狗高速下载/jna-5.5.0.jar"/>

@@ -1,26 +1,16 @@
 package com.yuntech.encryption;
 
-import java.awt.Dimension;
-import java.awt.Frame;
-import java.awt.event.WindowEvent;
-import java.awt.event.WindowListener;
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.concurrent.TimeUnit;
 
-import javax.script.Invocable;
-import javax.script.ScriptEngine;
-import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
 
-import org.xvolks.test.Ldcnlib.Test;
+import com.sun.jna.platform.win32.WinDef;
+import com.sun.jna.platform.win32.WinDef.LRESULT;
 
 /**
  * Author : wuyy
@@ -30,6 +20,14 @@ import org.xvolks.test.Ldcnlib.Test;
 public class CloseWinFolder {
 	
 
+	/**
+	 * 
+	 * Func: 通过bat方式 关闭指定的文件夹窗口   不过该方法  适合关闭特定的程序，不过关闭窗口 勿用
+	 * Data: 2020-03-23
+	 * @param path   batfile文件所在的路径(包含文件名）
+	 * @param foldername   要关闭的文件夹名称
+	 * @return
+	 */
     public boolean runbat(String path,String foldername) {
 
     	String cmd = "cscript -nologo -e:jscript "+ path + " CloseOpenWindow " + foldername;
@@ -59,12 +57,14 @@ public class CloseWinFolder {
         System.out.println("child thread donn");
         return true;
     }
-	public String runbatFile(String foldername) {
-		
-		
-		return null;
-		
-	}
+	
+	/**
+	 * 
+	 * Func:  通过bat方式 关闭指定的文件夹窗口   不过该方法  适合关闭特定的程序，不过关闭窗口 勿用
+	 * Data: 2020-03-23
+	 * @param foldername   batfile 被放到Class路径下，一起打包
+	 * @return
+	 */
     public String runbatt(String foldername) {
     	
     	ClassLoader classLoader = CloseWinFolder.class.getClassLoader();
@@ -86,7 +86,6 @@ public class CloseWinFolder {
     		while ((lineStr = br.readLine()) != null) {
     			result.append(lineStr).append('\n');
     		}
-    		
     		// 关闭输入流
     		br.close();
     		in.close();
@@ -101,12 +100,31 @@ public class CloseWinFolder {
             // 返回执行结果
             return result.toString();
     }
+    
+	   /**
+	    * 
+	    * Func:通过窗口标题获取窗口句柄
+	    * Data: 2020-03-23
+	    * @param windowName
+	    * @return
+	    */
+	    public static void closewindow(String windowName){
+	    	//通过窗口标题获取窗口句柄
+	        WinDef.HWND hWnd = com.sun.jna.platform.win32.User32.INSTANCE.FindWindow(null,windowName);
+	        if (hWnd==null)   //throw new RuntimeException("窗口不存在,请先运行程序");
+	        	System.out.println("窗口不存在，请继续等待");
+	        else {
+	        	LRESULT lresult= com.sun.jna.platform.win32.User32.INSTANCE.SendMessage(hWnd, 0X10, null, null);
+	        	System.out.println("lresult:"+lresult);
+	        }
+	    }
+
     public static void main(String[] args) throws Exception, ScriptException  {
     	
-    	CloseWinFolder closewinfolder=new CloseWinFolder();
-    	String foldername = "C:/Users/jcy/Desktop";
-    	
-    	String bl = closewinfolder.runbatt(foldername);
-        System.out.println(foldername+" 执行结果: "+ bl);
+    	while(true) {
+    		
+    		closewindow("test01");
+    		TimeUnit.MILLISECONDS.sleep(5000);
+    	}
     }
 }
