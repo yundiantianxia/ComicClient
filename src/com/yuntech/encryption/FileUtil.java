@@ -34,10 +34,6 @@ import com.yuntech.encryption.TryWithHWND.User32;
 
 
 
-
-
-
-
 public class FileUtil {
 
 
@@ -69,7 +65,7 @@ public class FileUtil {
         
         for(File lfs : fs){
         	if(!lfs.exists()) {
-        		throw new RuntimeException(lfs.getName()+" Is No Exist");
+        		;//throw new RuntimeException(lfs.getName()+" Is No Exist");
         	}
         	if(lfs.isDirectory()&&lfs.getPath().contains(mode[1])) {
         		Runtime.getRuntime().exec("attrib " +lfs.getPath()+ " -S -H ");
@@ -108,6 +104,8 @@ public class FileUtil {
 
 		if(path != null) {
 			file=new File(path);
+		}else {
+			return false;
 		}
         File[] fs = file.listFiles();
         
@@ -127,6 +125,7 @@ public class FileUtil {
 	        		Runtime.getRuntime().exec("attrib "+ lfs.getPath()+mode[1] + " +S +H " );
 	    			System.out.println(lfs.getPath() + "---Haved Be S H  Suced To---" + lfs.getPath()+mode[1]);
 	        	}else if(lfs.isFile()){
+	        		//文件加密
 	        		encryption(lfs.getPath());
 	        		System.out.println(lfs.getPath()+"---haved be Archived");
 	        	}else {
@@ -258,6 +257,8 @@ public class FileUtil {
 		return str;
 	}
 	
+	
+
 	public static String[] createFile(int num,int breath,String filename) {
 		 String[] istr=new String[breath];
 		 
@@ -288,43 +289,108 @@ public class FileUtil {
 	public static void encryption(String s_File) throws IOException {
 		
 		File inFile = new File(s_File);
-		FileInputStream input = new FileInputStream(inFile);
-		Random r = new Random();
-		int key = r.nextInt(1000);
-		int num = r.nextInt(1000);
 		
 		byte[] b = null;
-		if(inFile != null) {
-			if( num > inFile.length()) {
-				b = new byte[(int)inFile.length()];
-			}else {
-				b = new byte[num];
-			}
+		Random r = new Random();
+		int key = 0;
+		int num = 0;
+		if(!inFile.exists()) {
+			System.out.println("文件不存在");
+			return;
 		}
-		int in = input.read(b);
-		input.close();
-		
-		inFile = new File(s_File);
-		RandomAccessFile output = new RandomAccessFile(s_File, "rw");
-		for(int i=0;i < b.length;i++){
-            int temp = b[i];
-            b[i] = (byte) (temp^key);
-        }
-		output.write(b);
-		output.close();
-		
-		//追加头文件信息
-		String d_File = inFile.getParent()+"/"+getRandom(8);
-    	String strHead = "yundian,.tianxia" + "$&"+ s_File + "$&" + key + "$&" + num +"$&" ; // 添加的头部内容
-    	littleFileAddHead(s_File, 0, strHead);
-    	reFileName(s_File,d_File);
-//		if(inFile.exists()) {
-//			if(inFile.delete()) {
-//				System.out.println("del file suc");
-//			}else{
-//				System.out.println("del file fail");
-//			};
-//		}
+		if(inFile.length() > (1L << 30)) {
+			System.out.println("文件大于1G");
+			
+			RandomAccessFile sFRandomAccessFile = new RandomAccessFile(s_File, "rw");			
+			//key 加密的秘钥
+			key = 1;
+			//num 待加密的字节数
+			num = r.nextInt(1000);
+			if(inFile != null) {
+				if( num > inFile.length()) {
+					b = new byte[(int)inFile.length()];
+				}else {
+					b = new byte[num];
+				}
+			}
+//			byte[] bt = new byte[500];
+//			sFRandomAccessFile.seek(sFRandomAccessFile.length()-500);
+//			int in= sFRandomAccessFile.read(bt);
+//			System.out.println("in:"+in);
+//
+			sFRandomAccessFile.close();
+//			
+//			// 对文件大于1G的文件   加文件尾 加密字节
+//			if((new String(bt)).contains("wuyun,.tianxia")) {
+//				System.out.println("File haved been encryped"+ s_File);
+//				return ;
+//			}
+			//文件首 加密字节
+			RandomAccessFile output = new RandomAccessFile(s_File, "rw");
+			FileInputStream input = new FileInputStream(s_File);
+			int keyvalue=1;
+			for(int i=0;i < b.length;i++){
+	            int temp = input.read();
+	            output.write(temp^keyvalue);
+	        }
+			
+			input.close();
+			output.close();
+//			// 追加文件信息
+			String d_File = inFile.getParent()+"\\"+getRandom(8);
+	    	String strtail = "wuyun,.tianxia" + "$&"+ s_File + "$&" + key + "$&" + num +"$&" ; // 添加的尾部内容
+	    	System.out.println("strtail:"+strtail);
+//	    	output.seek(output.length());
+//	    	output.write(strtail.getBytes());
+			
+	    	//产生加密信息文件
+	    	bigFileCreatTemp(s_File, strtail);
+	    	
+	    	reFileName(s_File+".temp",d_File+".temp");
+	    	reFileName(s_File, d_File);
+	    	
+	    	
+	    	/*****小文件操作****/
+		}else {
+			System.out.println("文件小于1G");
+			
+			FileInputStream input = new FileInputStream(inFile);
+			//key 加密的秘钥
+			key = 1;
+			//num 待加密的字节数
+			num = r.nextInt(1000);
+			if(inFile != null) {
+				if( num > inFile.length()) {
+					b = new byte[(int)inFile.length()];
+				}else {
+					b = new byte[num];
+				}
+			}
+			input.read(b);
+			input.close();
+			
+			//判断该文件是否被加密 如果已被加密 则直接返回
+			if((new String(b)).contains("yundian,.tianxia")) {
+				System.out.println("File haved been encryped"+ s_File);
+				return ;
+			}
+			
+			// 文件小于1G的文件  加文件头 做字节加密操作
+			RandomAccessFile output = new RandomAccessFile(s_File, "rw");
+			int keyvalue=1;
+			for(int i=0;i < b.length;i++){
+	            int temp = b[i];
+	            output.write(temp^keyvalue);
+	        }
+			output.close();
+
+			// 追加头文件信息
+			String d_File = inFile.getParent()+"/"+getRandom(8);
+	    	String strHead = "yundian,.tianxia" + "$&"+ s_File + "$&" + key + "$&" + num +"$&" ; // 添加的头部内容
+	    	littleFileAddHead(s_File, 0, strHead);
+	    	reFileName(s_File,d_File);
+	    	
+		}
 	}
 	
 //	public static void Archive(File inFile,int key) throws IOException {
@@ -358,21 +424,22 @@ public class FileUtil {
 //		output.write(content^key);
 //		output.close();
 //	}
+	
 	/**
+	 * 
 	 * Func:分析文件头1024个字节取出要素
+	 * Data: 2020-03-24
 	 * @param s_File
-	 * @throws Exception 
+	 * @param split
+	 * @param spitstr
+	 * @return 0 小文件   1 大文件  2 新文件 无需解压
+	 * @throws Exception
 	 */
-	public static void splitFile(String s_File,String split,ArrayList<String> spitstr) throws Exception {
+	public static int flagEncryFile(String s_File,String split,ArrayList<String> spitstr) throws Exception {
 		FileReader fr= new FileReader(s_File);
-		int num=0;
 		char[] buf = new char[1024];
-		//依次读取一个字符，读到最后没有了就返回-1。有分隔符号
-//		ArrayList<String> stringlist = new ArrayList<String>();//储存待读取的字符串
-//		while((num=fr.read(buf))!=-1) {
-//			System.out.println(new String(buf,0,num));;
-//		}
-		num = fr.read(buf);
+		
+		fr.read(buf);
 		//对字符串进一步处理
 		String[] sptstr = String.valueOf(buf).split(split);
 		for(String str:sptstr) {
@@ -380,6 +447,51 @@ public class FileUtil {
 			System.out.println("str: "+str);
 		}
 		fr.close();
+		if(spitstr.size()>=4 && spitstr.get(0).contains("yundian,.tianxia")) {
+			System.out.println("小文件 已加密");
+			return 0;
+		}else {
+			spitstr.clear();
+			sptstr = null;
+			
+			//从配置文件获取文件头
+			fr= new FileReader(s_File+".temp");
+			buf = new char[512];
+			fr.read(buf);
+			//对字符串进一步处理
+			sptstr = String.valueOf(buf).split(split);
+			for(String str:sptstr) {
+				spitstr.add(str);
+				System.out.println("str: "+str);
+			}
+			fr.close();
+			if(spitstr.size()>=4 && (spitstr.get(0)).contains("wuyun,.tianxia")) {
+				return 1;
+			}
+			
+//			RandomAccessFile output = new RandomAccessFile(s_File, "rw");
+//			System.out.println("output.length():"+output.length());
+//			if((output.length()-1024)>0) {
+//				output.seek(output.length()-1024);
+//			}else {
+//				output.seek(0);
+//			}
+//			System.out.println("FilePointer: "+output.getFilePointer());
+//			byte[] bt = new byte[1024];
+//			int tm = output.read(bt);
+//			System.out.println("bt:"+new String(bt)+"tm:"+tm);
+//			sptstr = (new String(bt)).split(split);
+//			for(String str:sptstr) {
+//				spitstr.add(str);
+//				System.out.println("str: "+str);
+//			}
+//			output.close();
+//			if(spitstr.size()>=4 && (new String(bt)).contains("wuyun,.tianxia")) {
+//				System.out.println("大文件 已加密");
+//				return 1;
+//			}
+		}
+		return 2;
 	}
 	
 	/**
@@ -390,27 +502,60 @@ public class FileUtil {
 	public static void decryption(String s_File) throws Exception {
 
 		File inFile= new File(s_File);
-		String ens = null;
 		String filename = null;
 		String key = null;
 		String num = null;
 		ArrayList<String> list = new ArrayList<String> ();
-		splitFile(s_File,"\\$&", list);
-		if(list.size()>=4) {
-			ens = list.get(0);
+		if(null == inFile || !inFile.exists()) {
+			return;
+		}
+		int flag = flagEncryFile(s_File,"\\$&", list);
+		
+		//判断是否是小文件 判定文件头
+		if(flag == 0) {
+			
+			System.out.println("小文件");
 			filename = list.get(1);
 			key = list.get(2);
 			num = list.get(3);
+			//移除小文件头
+			littleFileRemoveHead(s_File, s_File+"1",list);
+			inFile.deleteOnExit();
+			reFileName(s_File+"1",filename);
+			
+			
+		//判断是否是大文件 判定是否存在 加密信息文件
+		}else if(flag == 1){			
+			System.out.println("大文件");
+//			filename = new String(list.get(1).getBytes("UTF-8"),"UTF-8");
+//			System.out.println("filename:"+filename);
+//			key = list.get(2);
+//			num = list.get(3);
+//			//移除大文件尾
+//			RandomAccessFile rs=new RandomAccessFile(s_File, "rw");
+//			String str = "wuyun,.dianxia" +"$&"+list.get(1) + "$&" + list.get(2) + "$&" + list.get(3) + "$&"; // 尾部内容
+//			rs.seek(rs.length()-str.getBytes().length);
+//			while(rs.getFilePointer()< rs.length()) {
+//				rs.write('\0');
+//			}
+//			rs.close();
+
+
+			
+			filename=list.get(1);
+			key = list.get(2);
+			num = list.get(3);
+			File temp = new File(s_File+".temp");
+			temp.delete();
+			inFile.deleteOnExit();
+			reFileName(s_File,filename);
+			
 		}else {
 			System.out.println("无需解压");
 			return;
 		}
 		
-		littleFileRemoveHead(s_File, s_File+"1",list);
-		reFileName(s_File+"1",filename);
-		inFile.deleteOnExit();
-		
-		
+		//解密字符串
 		RandomAccessFile output = new RandomAccessFile(filename, "rw");
 		inFile = new File(filename);
 		FileInputStream input = new FileInputStream(inFile);
@@ -424,11 +569,11 @@ public class FileUtil {
 		}
 		int in = input.read(b);
 		input.close();
+		int keyvalue = 1;
 		for(int i=0;i < b.length;i++){
             int temp = b[i];
-            b[i] = (byte) (temp^Integer.valueOf(key));
+            output.write(temp^keyvalue);
         }
-		output.write(b);
 		output.close();
 		
 	}
@@ -669,7 +814,7 @@ public class FileUtil {
 			}	
 		}.start();
 	}
-		
+
 			/**
 			 * Func: 去除文件头
 			 * @param filename
@@ -793,6 +938,8 @@ public class FileUtil {
 					in.close();
 					
 		    }	
+		    
+
 		/**
 		 * 
 		 * Func:往文件头里写入特定字节数的内容
@@ -816,7 +963,7 @@ public class FileUtil {
 	            System.out.println("src file size:" + srcLength);  // src file size:296354010
 	            MappedByteBuffer  srcMap = null;
 	            /** 判断是否大于2G **/
-	            if(srcLength > (1L << 31)) {
+	            if(srcLength > (1L << 30)) {
 	            	long cur = 0L;
 	            	long length = 1L << 29;
 	            	Random srcrandom = new Random();
@@ -873,7 +1020,6 @@ public class FileUtil {
 
 	            // 加上这几行代码,手动unmap 
 	    
-	            
 	            srcMap.clear();
 	            destMap.clear();
 	            destAccessFileChannel.close();
@@ -890,7 +1036,28 @@ public class FileUtil {
 	        }
 	    }
 
-		
+		/**
+		 * Func:  大文件(大于1G)  临时文件配置情况
+		 * @param fileName
+		 * @param pos
+		 * @param insertContent
+		 * @throws IOException
+		 */
+		public static void bigFileCreatTemp(String fileName,String insertContent) throws IOException{
+			File temp= new File(fileName +".temp");
+			String sets = "attrib +H +S "+ temp.getAbsolutePath();
+			Runtime.getRuntime().exec(sets);
+//			temp.deleteOnExit();
+			//使用临时文件保存插入点后的数据
+			RandomAccessFile raf=new RandomAccessFile(temp, "rw");
+			//-----------下面代码用于插入内容----------
+			//把文件记录指针重写定位到pos位置
+			raf.seek(0);
+			//追加需要插入的内容
+			raf.write(insertContent.getBytes());
+
+			raf.close();
+		}		
 		/**
 		 * Func:  小文件(小于1G)  插入文件头
 		 * @param fileName
@@ -1074,20 +1241,41 @@ public class FileUtil {
 //		final String fileType = getFileType("C:/Users/wyy/Desktop/ComicClient/1.txt");
 //		System.out.println(fileType);
 //		
-//  		encryption("C:/Users/wyy/Desktop/ComicClient/test/6.建行云缴费-亿生活(190213)-王璐.pptx");
-//  		decryption("C:/Users/wyy/Desktop/ComicClient/test/"+"JGYJMDTL");
+//  		encryption("C:/Users/wyy/Desktop/ComicClient/test01/"+"6.建行云缴费-亿生活(190213)-王璐.pptx");
+//  		decryption("C:/Users/wyy/Desktop/ComicClient/test01/"+"UKTZPWSR");
 
-//  		encryption("C:/Users/wyy/Desktop/ComicClient/1.txt", 98, 5);
-//  		decryption("C:/Users/wyy/Desktop/ComicClient/1.txt-cry");
+//  	  	encryption("C:/Users/wyy/Desktop/ComicClient/test01/吴云岩.txt");
+//  		decryption("C:/Users/wyy/Desktop/ComicClient/test01/"+"RMPEOBNK");
+
+//		encryption("C:/Users/wyy/Desktop/ComicClient/test01/"+"完成版.mp4");
+//		decryption("C:/Users/wyy/Desktop/ComicClient/test01/"+"IWRPHBZT");
+
+//	  	encryption("C:/Users/wyy/Desktop/ComicClient/test01/"+"CentOS-7-x86_64-DVD-1611.iso");
+//		decryption("C:/Users/wyy/Desktop/ComicClient/test01/"+"NHRHUIRN");
 		
 //		insert("C:/Users/wyy/Desktop/ComicClient/CentOS-7-x86_64-DVD-1611.iso", 0, "abcdefghi");
 //  		readAppointedLineNumber(new File("C:/Users/wyy/Desktop/ComicClient/1.txt"),1);
 //  		decryption("C:/Users/wyy/Desktop/ComicClient/完成版.mp4-cry");
 //		encryption("D:/BaiduNetdiskDownload/test/04 「远离金融陷阱」文化艺术品、古董等.avi", 1, 50000);
-//		packege();
-//		unPackege();
-		closeWinFolder();
-//		hello();
-	
+		packege();
+		unPackege();
+//		closeWinFolder();
+//		String s_File = "C:/Users/wyy/Desktop/ComicClient/test01/UPCYFHER";
+//		RandomAccessFile output = new RandomAccessFile(s_File, "rw");
+//		output.seek(output.length()-300);
+//		byte[ ] b = new byte[300];
+////		while(output.getFilePointer()< output.length()) {
+//			System.out.println(output.getFilePointer());
+//			int i = output.read(b);
+//			System.out.println("output.read:"+ new String(b));
+//			System.out.println("output.i:"+i);
+////		};
+		
+//		String str = "C:/Users/wyy/Desktop/ComicClient/test01/"+"6.建行云缴费-亿生活(190213)-王璐.pptx";
+//		reFileName("1",str);
+//  		int key = 1;
+//  		int content = 20;
+//  		int ca =  content^key; 
+//  		System.out.println("value: "+ ca);
 	}
 }
