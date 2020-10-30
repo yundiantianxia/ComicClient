@@ -32,6 +32,8 @@ public class FileUtil {
 	
 	/**
 	 * 解包方法：解包指定文件到指定文件夹下
+	 * 逆向恢复文件 如果加密 则还原文件，恢复文件属性和原文件名
+	 *
 	 * @throws Exception 
 	 */
 	public static boolean unPackege() throws Exception {
@@ -85,7 +87,7 @@ public class FileUtil {
 	public static boolean packege() throws IOException {
 		String[] mode= new String[2];
 
-		// windows安全文件的类标识符
+		// windows安全文件的类标识符 加密策略之一
 		mode[0]=".{645FF040-5081-101B-9F08-00AA002F954E}";
 		mode[1]=".{2559a1f2-21d7-11d4-bdaf-00c04f60b9f0}";
 		
@@ -116,6 +118,7 @@ public class FileUtil {
 	        			System.out.println(lfs.getPath() + "---Haved Be S H  Failed To---" + lfs.getPath()+mode[1]);
 	        			return false;
 	        		}
+	        		// 文件夹属性更改  S 系统文件  H 隐藏文件
 	        		Runtime.getRuntime().exec("attrib "+ lfs.getPath()+mode[1] + " +S +H " );
 	    			System.out.println(lfs.getPath() + "---Haved Be S H  Suced To---" + lfs.getPath()+mode[1]);
 	        	}else if(lfs.isFile()){
@@ -1208,44 +1211,10 @@ public class FileUtil {
 //	    		System.out.println(builder.toString());
 	    		return builder.toString();
 	    	}
-//	    	
-//	    	/**
-//	    	 * 
-//	    	 * Func:
-//	    	 * Data: 2020-03-22
-//	    	 * @throws Exception
-//	    	 */
-//	    	    public static  void hello() throws Exception  {
-//	    	        Desktop desktop = Desktop.getDesktop();
-//	    	        File dirToOpen = null;
-//	    	        try {
-//	    	            dirToOpen = new File("C:/Users/wyy/Desktop/ComicClient");
-//	    	            desktop.(dirToOpen);
-//	    	        } catch (IllegalArgumentException iae) {
-//	    	            System.out.println("File Not Found");
-//	    	        }
-//	    	    }
+
 	public static void main(String[] args) throws Exception {
-		
-//		final String fileType = getFileType("C:/Users/wyy/Desktop/ComicClient/1.txt");
-//		System.out.println(fileType);
-//		
-//  		encryption("C:/Users/wyy/Desktop/ComicClient/test01/"+"6.建行云缴费-亿生活(190213)-王璐.pptx");
-//  		decryption("C:/Users/wyy/Desktop/ComicClient/test01/"+"UKTZPWSR");
 
-//  	  	encryption("C:/Users/wyy/Desktop/ComicClient/test01/吴云岩.txt");
-//  		decryption("C:/Users/wyy/Desktop/ComicClient/test01/"+"RMPEOBNK");
 
-//		encryption("C:/Users/wyy/Desktop/ComicClient/test01/"+"完成版.mp4");
-//		decryption("C:/Users/wyy/Desktop/ComicClient/test01/"+"IWRPHBZT");
-
-//	  	encryption("C:/Users/wyy/Desktop/ComicClient/test01/"+"CentOS-7-x86_64-DVD-1611.iso");
-//		decryption("C:/Users/wyy/Desktop/ComicClient/test01/"+"NHRHUIRN");
-		
-//		insert("C:/Users/wyy/Desktop/ComicClient/CentOS-7-x86_64-DVD-1611.iso", 0, "abcdefghi");
-//  		readAppointedLineNumber(new File("C:/Users/wyy/Desktop/ComicClient/1.txt"),1);
-//  		decryption("C:/Users/wyy/Desktop/ComicClient/完成版.mp4-cry");
-//		encryption("D:/BaiduNetdiskDownload/test/04 「远离金融陷阱」文化艺术品、古董等.avi", 1, 50000);
 		packege();
 		unPackege();
 //		closeWinFolder();
@@ -1253,18 +1222,12 @@ public class FileUtil {
 //		RandomAccessFile output = new RandomAccessFile(s_File, "rw");
 //		output.seek(output.length()-300);
 //		byte[ ] b = new byte[300];
-////		while(output.getFilePointer()< output.length()) {
+//		while(output.getFilePointer()< output.length()) {
 //			System.out.println(output.getFilePointer());
 //			int i = output.read(b);
 //			System.out.println("output.read:"+ new String(b));
 //			System.out.println("output.i:"+i);
-////		};
-		
-//		String str = "C:/Users/wyy/Desktop/ComicClient/test01/"+"6.建行云缴费-亿生活(190213)-王璐.pptx";
-//		reFileName("1",str);
-//  		int key = 1;
-//  		int content = 20;
-//  		int ca =  content^key; 
-//  		System.out.println("value: "+ ca);
+//		};
+
 	}
 }

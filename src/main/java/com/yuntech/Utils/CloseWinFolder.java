@@ -15,7 +15,8 @@ import javax.script.ScriptException;
 /**
  * Author : wuyy
  * Date: 2020-03-11
- * Des:  关闭窗口类
+ * Des:  关闭窗口  解决方案有1 批处理命令封装  2调用win32原生native方法
+ *
  */
 public class CloseWinFolder {
 	
